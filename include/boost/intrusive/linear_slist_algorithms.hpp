@@ -1,7 +1,7 @@
 /////////////////////////////////////////////////////////////////////////////
 //
 // (C) Copyright Olaf Krzikalla 2004-2006.
-// (C) Copyright Ion Gaztanaga  2006-2014
+// (C) Copyright Ion Gaztanaga  2006-2009
 //
 // Distributed under the Boost Software License, Version 1.0.
 //    (See accompanying file LICENSE_1_0.txt or copy at
@@ -17,13 +17,8 @@
 #include <boost/intrusive/detail/config_begin.hpp>
 #include <boost/intrusive/intrusive_fwd.hpp>
 #include <boost/intrusive/detail/common_slist_algorithms.hpp>
-#include <boost/intrusive/detail/algo_type.hpp>
 #include <cstddef>
-#include <boost/intrusive/detail/minimal_pair_header.hpp>   //std::pair
-
-#if defined(BOOST_HAS_PRAGMA_ONCE)
-#  pragma once
-#endif
+#include <utility>
 
 namespace boost {
 namespace intrusive {
@@ -141,7 +136,7 @@ class linear_slist_algorithms
    //! <b>Complexity</b>: Constant
    //!
    //! <b>Throws</b>: Nothing.
-   BOOST_INTRUSIVE_FORCEINLINE static void init_header(const node_ptr & this_node)
+   static void init_header(const node_ptr & this_node)
    {  NodeTraits::set_next(this_node, node_ptr ());  }
 
    //! <b>Requires</b>: this_node and prev_init_node must be in the same linear list.
@@ -153,7 +148,7 @@ class linear_slist_algorithms
    //! <b>Complexity</b>: Linear to the number of elements between prev_init_node and this_node.
    //!
    //! <b>Throws</b>: Nothing.
-   BOOST_INTRUSIVE_FORCEINLINE static node_ptr get_previous_node(const node_ptr & prev_init_node, const node_ptr & this_node)
+   static node_ptr get_previous_node(const node_ptr & prev_init_node, const node_ptr & this_node)
    {  return base_t::get_previous_node(prev_init_node, this_node);   }
 
    //! <b>Requires</b>: this_node must be in a linear list or be an empty linear list.
@@ -260,7 +255,7 @@ class linear_slist_algorithms
       if(!end_found){
          old_last = base_t::get_previous_node(first, node_ptr());
       }
-
+     
       //Now link p after the new last node
       NodeTraits::set_next(old_last, p);
       NodeTraits::set_next(new_last, node_ptr());
@@ -305,7 +300,7 @@ class linear_slist_algorithms
          //If the shift is a multiple of the size there is nothing to do
          if(!new_before_last_pos)
             return ret;
-
+        
          for( new_last = p
             ; --new_before_last_pos
             ; new_last = node_traits::get_next(new_last)){
@@ -323,16 +318,6 @@ class linear_slist_algorithms
       return ret;
    }
 };
-
-/// @cond
-
-template<class NodeTraits>
-struct get_algo<LinearSListAlgorithms, NodeTraits>
-{
-   typedef linear_slist_algorithms<NodeTraits> type;
-};
-
-/// @endcond
 
 } //namespace intrusive
 } //namespace boost

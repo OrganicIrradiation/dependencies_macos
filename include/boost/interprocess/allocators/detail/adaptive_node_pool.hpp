@@ -1,6 +1,6 @@
 //////////////////////////////////////////////////////////////////////////////
 //
-// (C) Copyright Ion Gaztanaga 2005-2012. Distributed under the Boost
+// (C) Copyright Ion Gaztanaga 2005-2011. Distributed under the Boost
 // Software License, Version 1.0. (See accompanying file
 // LICENSE_1_0.txt or copy at http://www.boost.org/LICENSE_1_0.txt)
 //
@@ -11,11 +11,7 @@
 #ifndef BOOST_INTERPROCESS_DETAIL_ADAPTIVE_NODE_POOL_HPP
 #define BOOST_INTERPROCESS_DETAIL_ADAPTIVE_NODE_POOL_HPP
 
-#ifndef BOOST_CONFIG_HPP
-#  include <boost/config.hpp>
-#endif
-#
-#if defined(BOOST_HAS_PRAGMA_ONCE)
+#if (defined _MSC_VER) && (_MSC_VER >= 1200)
 #  pragma once
 #endif
 
@@ -49,16 +45,10 @@ template< class SegmentManager
         >
 class private_adaptive_node_pool
    :  public boost::container::container_detail::private_adaptive_node_pool_impl
-         < typename SegmentManager::segment_manager_base_type
-         , ::boost::container::adaptive_pool_flag::size_ordered |
-           ::boost::container::adaptive_pool_flag::address_ordered
-         >
+         <typename SegmentManager::segment_manager_base_type>
 {
    typedef boost::container::container_detail::private_adaptive_node_pool_impl
-      < typename SegmentManager::segment_manager_base_type
-      , ::boost::container::adaptive_pool_flag::size_ordered |
-        ::boost::container::adaptive_pool_flag::address_ordered
-      > base_t;
+      <typename SegmentManager::segment_manager_base_type> base_t;
    //Non-copyable
    private_adaptive_node_pool();
    private_adaptive_node_pool(const private_adaptive_node_pool &);
@@ -84,7 +74,7 @@ class private_adaptive_node_pool
 };
 
 //!Pooled shared memory allocator using adaptive pool. Includes
-//!a reference count but the class does not delete itself, this is
+//!a reference count but the class does not delete itself, this is 
 //!responsibility of user classes. Node size (NodeSize) and the number of
 //!nodes allocated per block (NodesPerBlock) are known at compile time
 template< class SegmentManager

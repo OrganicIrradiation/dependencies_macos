@@ -1,6 +1,6 @@
 //////////////////////////////////////////////////////////////////////////////
 //
-// (C) Copyright Ion Gaztanaga 2005-2012. Distributed under the Boost
+// (C) Copyright Ion Gaztanaga 2005-2011. Distributed under the Boost
 // Software License, Version 1.0. (See accompanying file
 // LICENSE_1_0.txt or copy at http://www.boost.org/LICENSE_1_0.txt)
 //
@@ -11,11 +11,7 @@
 #ifndef BOOST_INTERPROCESS_NODE_ALLOCATOR_HPP
 #define BOOST_INTERPROCESS_NODE_ALLOCATOR_HPP
 
-#ifndef BOOST_CONFIG_HPP
-#  include <boost/config.hpp>
-#endif
-#
-#if defined(BOOST_HAS_PRAGMA_ONCE)
+#if (defined _MSC_VER) && (_MSC_VER >= 1200)
 #  pragma once
 #endif
 
@@ -30,11 +26,11 @@
 #include <boost/interprocess/detail/utilities.hpp>
 #include <boost/interprocess/detail/type_traits.hpp>
 #include <boost/interprocess/allocators/detail/node_pool.hpp>
-#include <boost/interprocess/containers/version_type.hpp>
 #include <boost/container/detail/multiallocation_chain.hpp>
 #include <boost/interprocess/exceptions.hpp>
 #include <boost/interprocess/allocators/detail/allocator_common.hpp>
-#include <boost/move/adl_move_swap.hpp>
+#include <memory>
+#include <algorithm>
 #include <cstddef>
 
 //!\file
@@ -43,7 +39,7 @@
 namespace boost {
 namespace interprocess {
 
-#if !defined(BOOST_INTERPROCESS_DOXYGEN_INVOKED)
+/// @cond
 
 namespace ipcdetail{
 
@@ -67,7 +63,7 @@ class node_allocator_base
    typedef node_allocator_base
       <Version, T, SegmentManager, NodesPerBlock>   self_t;
 
-   #if !defined(BOOST_INTERPROCESS_DOXYGEN_INVOKED)
+   /// @cond
 
    template <int dummy>
    struct node_pool
@@ -78,7 +74,7 @@ class node_allocator_base
       static type *get(void *p)
       {  return static_cast<type*>(p);  }
    };
-   #endif   //#ifndef BOOST_INTERPROCESS_DOXYGEN_INVOKED
+   /// @endcond
 
    BOOST_STATIC_ASSERT((Version <=2));
 
@@ -106,11 +102,11 @@ class node_allocator_base
    //!node_allocator_base
    template<class T2>
    struct rebind
-   {
+   { 
       typedef node_allocator_base<Version, T2, SegmentManager, NodesPerBlock>       other;
    };
 
-   #if !defined(BOOST_INTERPROCESS_DOXYGEN_INVOKED)
+   /// @cond
    private:
    //!Not assignable from related node_allocator_base
    template<unsigned int Version2, class T2, class SegmentManager2, std::size_t N2>
@@ -119,7 +115,7 @@ class node_allocator_base
 
    //!Not assignable from other node_allocator_base
    //node_allocator_base& operator=(const node_allocator_base&);
-   #endif   //#ifndef BOOST_INTERPROCESS_DOXYGEN_INVOKED
+   /// @endcond
 
    public:
    //!Constructor from a segment manager. If not present, constructs a node
@@ -132,8 +128,8 @@ class node_allocator_base
    //!count of the associated node pool. Never throws
    node_allocator_base(const node_allocator_base &other)
       : mp_node_pool(other.get_node_pool())
-   {
-      node_pool<0>::get(ipcdetail::to_raw_pointer(mp_node_pool))->inc_ref_count();
+   { 
+      node_pool<0>::get(ipcdetail::to_raw_pointer(mp_node_pool))->inc_ref_count();  
    }
 
    //!Copy constructor from related node_allocator_base. If not present, constructs
@@ -148,7 +144,7 @@ class node_allocator_base
    node_allocator_base& operator=(const node_allocator_base &other)
    {
       node_allocator_base c(other);
-      boost::adl_move_swap(*this, c);
+      swap(*this, c);
       return *this;
    }
 
@@ -170,12 +166,12 @@ class node_allocator_base
    //!Swaps allocators. Does not throw. If each allocator is placed in a
    //!different memory segment, the result is undefined.
    friend void swap(self_t &alloc1, self_t &alloc2)
-   {  boost::adl_move_swap(alloc1.mp_node_pool, alloc2.mp_node_pool);  }
+   {  ipcdetail::do_swap(alloc1.mp_node_pool, alloc2.mp_node_pool);  }
 
-   #if !defined(BOOST_INTERPROCESS_DOXYGEN_INVOKED)
+   /// @cond
    private:
    void_pointer   mp_node_pool;
-   #endif   //#ifndef BOOST_INTERPROCESS_DOXYGEN_INVOKED
+   /// @endcond
 };
 
 //!Equality test for same type
@@ -210,7 +206,7 @@ class node_allocator_v1
 
    template<class T2>
    struct rebind
-   {
+   { 
       typedef node_allocator_v1<T2, SegmentManager, NodesPerBlock>  other;
    };
 
@@ -227,7 +223,7 @@ class node_allocator_v1
 
 }  //namespace ipcdetail{
 
-#endif   //#ifndef BOOST_INTERPROCESS_DOXYGEN_INVOKED
+/// @endcond
 
 //!An STL node allocator that uses a segment manager as memory
 //!source. The internal pointer type will of the same type (raw, smart) as
@@ -236,20 +232,20 @@ class node_allocator_v1
 //!This node allocator shares a segregated storage between all instances
 //!of node_allocator with equal sizeof(T) placed in the same segment
 //!group. NodesPerBlock is the number of nodes allocated at once when the allocator
-//!runs out of nodes
+//!needs runs out of nodes
 template < class T
          , class SegmentManager
          , std::size_t NodesPerBlock
          >
 class node_allocator
-   #if !defined(BOOST_INTERPROCESS_DOXYGEN_INVOKED)
+   /// @cond
    :  public ipcdetail::node_allocator_base
          < 2
          , T
          , SegmentManager
          , NodesPerBlock
          >
-   #endif   //#ifndef BOOST_INTERPROCESS_DOXYGEN_INVOKED
+   /// @endcond
 {
 
    #ifndef BOOST_INTERPROCESS_DOXYGEN_INVOKED
@@ -260,7 +256,7 @@ class node_allocator
 
    template<class T2>
    struct rebind
-   {
+   { 
       typedef node_allocator<T2, SegmentManager, NodesPerBlock>  other;
    };
 
@@ -292,7 +288,7 @@ class node_allocator
    //!node_allocator
    template<class T2>
    struct rebind
-   {
+   { 
       typedef node_allocator<T2, SegmentManager, NodesPerBlock> other;
    };
 
@@ -377,8 +373,11 @@ class node_allocator
    //!allocate, allocation_command and allocate_many.
    size_type size(const pointer &p) const;
 
-   pointer allocation_command(boost::interprocess::allocation_type command,
-                         size_type limit_size, size_type &prefer_in_recvd_out_size, pointer &reuse);
+   std::pair<pointer, bool>
+      allocation_command(boost::interprocess::allocation_type command,
+                         size_type limit_size,
+                         size_type preferred_size,
+                         size_type &received_size, const pointer &reuse = 0);
 
    //!Allocates many elements of size elem_size in a contiguous block
    //!of memory. The minimum number to be allocated is min_elements,
@@ -386,12 +385,12 @@ class node_allocator
    //!preferred_elements. The number of actually allocated elements is
    //!will be assigned to received_size. The elements must be deallocated
    //!with deallocate(...)
-   void allocate_many(size_type elem_size, size_type num_elements, multiallocation_chain &chain);
+   multiallocation_chain allocate_many(size_type elem_size, size_type num_elements);
 
    //!Allocates n_elements elements, each one of size elem_sizes[i]in a
    //!contiguous block
    //!of memory. The elements must be deallocated
-   void allocate_many(const size_type *elem_sizes, size_type n_elements, multiallocation_chain &chain);
+   multiallocation_chain allocate_many(const size_type *elem_sizes, size_type n_elements);
 
    //!Allocates many elements of size elem_size in a contiguous block
    //!of memory. The minimum number to be allocated is min_elements,
@@ -399,7 +398,7 @@ class node_allocator
    //!preferred_elements. The number of actually allocated elements is
    //!will be assigned to received_size. The elements must be deallocated
    //!with deallocate(...)
-   void deallocate_many(multiallocation_chain &chain);
+   void deallocate_many(multiallocation_chain chain);
 
    //!Allocates just one object. Memory allocated with this function
    //!must be deallocated only with deallocate_one().
@@ -412,7 +411,7 @@ class node_allocator
    //!preferred_elements. The number of actually allocated elements is
    //!will be assigned to received_size. Memory allocated with this function
    //!must be deallocated only with deallocate_one().
-   void allocate_individual(size_type num_elements, multiallocation_chain &chain);
+   multiallocation_chain allocate_individual(size_type num_elements);
 
    //!Deallocates memory previously allocated with allocate_one().
    //!You should never use deallocate_one to deallocate memory allocated
@@ -425,7 +424,7 @@ class node_allocator
    //!preferred_elements. The number of actually allocated elements is
    //!will be assigned to received_size. Memory allocated with this function
    //!must be deallocated only with deallocate_one().
-   void deallocate_individual(multiallocation_chain &chain);
+   void deallocate_individual(multiallocation_chain chain);
    #endif
 };
 

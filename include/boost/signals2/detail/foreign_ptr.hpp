@@ -18,8 +18,12 @@
 #include <boost/smart_ptr/bad_weak_ptr.hpp>
 #include <boost/utility/swap.hpp>
 
-#ifndef BOOST_NO_CXX11_SMART_PTR
-#include <memory>
+#if !defined(BOOST_INTEL_STDCXX0X)
+namespace std
+{
+  template<typename T> class shared_ptr;
+  template<typename T> class weak_ptr;
+}
 #endif
 
 namespace boost
@@ -35,12 +39,10 @@ namespace boost
     {
       typedef boost::shared_ptr<T> shared_type;
     };
-#ifndef BOOST_NO_CXX11_SMART_PTR
     template<typename T> struct weak_ptr_traits<std::weak_ptr<T> >
     {
       typedef std::shared_ptr<T> shared_type;
     };
-#endif
 
     template<typename SharedPtr> struct shared_ptr_traits
     {};
@@ -49,18 +51,17 @@ namespace boost
     {
       typedef boost::weak_ptr<T> weak_type;
     };
-#ifndef BOOST_NO_CXX11_SMART_PTR
     template<typename T> struct shared_ptr_traits<std::shared_ptr<T> >
     {
       typedef std::weak_ptr<T> weak_type;
     };
-#endif
 
     namespace detail
     {
       struct foreign_shared_ptr_impl_base
       {
         virtual ~foreign_shared_ptr_impl_base() {}
+        virtual void* get() const = 0;
         virtual foreign_shared_ptr_impl_base * clone() const = 0;
       };
 
@@ -70,6 +71,10 @@ namespace boost
       public:
         foreign_shared_ptr_impl(const FSP &p): _p(p)
         {}
+        virtual void * get() const
+        {
+          return _p.get();
+        }
         virtual foreign_shared_ptr_impl * clone() const
         {
           return new foreign_shared_ptr_impl(*this);

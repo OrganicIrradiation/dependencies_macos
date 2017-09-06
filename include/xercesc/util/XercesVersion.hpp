@@ -16,7 +16,7 @@
  */
 
 /*
- * $Id: XercesVersion.hpp 1747617 2016-06-10 01:14:36Z scantor $
+ * $Id: XercesVersion.hpp 935350 2010-04-18 15:02:36Z borisk $
  */
 
 #if !defined(XERCESC_INCLUDE_GUARD_XERCESVERSION_HPP)
@@ -128,7 +128,7 @@
 
 #define XERCES_VERSION_MAJOR 3
 #define XERCES_VERSION_MINOR 1
-#define XERCES_VERSION_REVISION 4
+#define XERCES_VERSION_REVISION 1
 
 /***
  *

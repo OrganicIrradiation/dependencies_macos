@@ -129,8 +129,8 @@ class Frustum
     //  to transform the frustum before setting the planes.
     //-----------------------------------------------------------------------
 
-    void                planes(Plane3<T> p[6]) const;
-    void                planes(Plane3<T> p[6], const Matrix44<T> &M) const;
+    void                planes(Plane3<T> p[6]);
+    void                planes(Plane3<T> p[6], const Matrix44<T> &M);
 
     //----------------------
     //  Derived Quantities
@@ -645,7 +645,7 @@ T Frustum<T>::worldRadius(const Vec3<T> &p, T radius) const
 }
 
 template<class T>
-void Frustum<T>::planes(Plane3<T> p[6]) const
+void Frustum<T>::planes(Plane3<T> p[6])
 {
     //
     //        Plane order: Top, Right, Bottom, Left, Near, Far.
@@ -678,7 +678,7 @@ void Frustum<T>::planes(Plane3<T> p[6]) const
 
 
 template<class T>
-void Frustum<T>::planes(Plane3<T> p[6], const Matrix44<T> &M) const
+void Frustum<T>::planes(Plane3<T> p[6], const Matrix44<T> &M)
 {
     //
     //  Plane order: Top, Right, Bottom, Left, Near, Far.

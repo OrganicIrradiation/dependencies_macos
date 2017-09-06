@@ -14,11 +14,10 @@
 #include <boost/chrono/config.hpp>
 #include <boost/chrono/thread_clock.hpp>
 #include <cassert>
-#include <boost/assert.hpp>
 
-#include <boost/detail/winapi/get_last_error.hpp>
-#include <boost/detail/winapi/get_current_thread.hpp>
-#include <boost/detail/winapi/get_thread_times.hpp>
+#include <boost/detail/win/GetLastError.hpp>
+#include <boost/detail/win/GetCurrentThread.hpp>
+#include <boost/detail/win/GetThreadTimes.hpp>
 
 namespace boost
 {
@@ -29,10 +28,10 @@ namespace chrono
 thread_clock::time_point thread_clock::now( system::error_code & ec )
 {
     //  note that Windows uses 100 nanosecond ticks for FILETIME
-    boost::detail::winapi::FILETIME_ creation, exit, user_time, system_time;
+    boost::detail::win32::FILETIME_ creation, exit, user_time, system_time;
 
-    if ( boost::detail::winapi::GetThreadTimes(
-            boost::detail::winapi::GetCurrentThread (), &creation, &exit,
+    if ( boost::detail::win32::GetThreadTimes(
+            boost::detail::win32::GetCurrentThread (), &creation, &exit,
             &system_time, &user_time ) )
     {
         duration user = duration(
@@ -43,7 +42,7 @@ thread_clock::time_point thread_clock::now( system::error_code & ec )
                 ((static_cast<duration::rep>(system_time.dwHighDateTime) << 32)
                         | system_time.dwLowDateTime) * 100 );
 
-        if (!BOOST_CHRONO_IS_THROWS(ec))
+        if (!BOOST_CHRONO_IS_THROWS(ec)) 
         {
             ec.clear();
         }
@@ -52,17 +51,17 @@ thread_clock::time_point thread_clock::now( system::error_code & ec )
     }
     else
     {
-        if (BOOST_CHRONO_IS_THROWS(ec))
+        if (BOOST_CHRONO_IS_THROWS(ec)) 
         {
             boost::throw_exception(
-                    system::system_error(
-                            boost::detail::winapi::GetLastError(),
-                            BOOST_CHRONO_SYSTEM_CATEGORY,
+                    system::system_error( 
+                            boost::detail::win32::GetLastError(), 
+                            BOOST_CHRONO_SYSTEM_CATEGORY, 
                             "chrono::thread_clock" ));
-        }
-        else
+        } 
+        else 
         {
-            ec.assign( boost::detail::winapi::GetLastError(), BOOST_CHRONO_SYSTEM_CATEGORY );
+            ec.assign( boost::detail::win32::GetLastError(), BOOST_CHRONO_SYSTEM_CATEGORY );
             return thread_clock::time_point(duration(0));
         }
     }
@@ -73,10 +72,10 @@ thread_clock::time_point thread_clock::now() BOOST_NOEXCEPT
 {
 
     //  note that Windows uses 100 nanosecond ticks for FILETIME
-    boost::detail::winapi::FILETIME_ creation, exit, user_time, system_time;
+    boost::detail::win32::FILETIME_ creation, exit, user_time, system_time;
 
-    if ( boost::detail::winapi::GetThreadTimes(
-            boost::detail::winapi::GetCurrentThread (), &creation, &exit,
+    if ( boost::detail::win32::GetThreadTimes( 
+            boost::detail::win32::GetCurrentThread (), &creation, &exit,
             &system_time, &user_time ) )
     {
         duration user   = duration(

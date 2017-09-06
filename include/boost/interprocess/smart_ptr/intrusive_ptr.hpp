@@ -3,7 +3,7 @@
 // This file is the adaptation for Interprocess of boost/intrusive_ptr.hpp
 //
 // (C) Copyright Peter Dimov 2001, 2002
-// (C) Copyright Ion Gaztanaga 2006-2012. Distributed under the Boost
+// (C) Copyright Ion Gaztanaga 2006. Distributed under the Boost
 // Software License, Version 1.0. (See accompanying file
 // LICENSE_1_0.txt or copy at http://www.boost.org/LICENSE_1_0.txt)
 //
@@ -14,14 +14,6 @@
 #ifndef BOOST_INTERPROCESS_INTRUSIVE_PTR_HPP_INCLUDED
 #define BOOST_INTERPROCESS_INTRUSIVE_PTR_HPP_INCLUDED
 
-#ifndef BOOST_CONFIG_HPP
-#  include <boost/config.hpp>
-#endif
-#
-#if defined(BOOST_HAS_PRAGMA_ONCE)
-#  pragma once
-#endif
-
 //!\file
 //!Describes an intrusive ownership pointer.
 
@@ -31,11 +23,10 @@
 #include <boost/assert.hpp>
 #include <boost/interprocess/detail/utilities.hpp>
 #include <boost/intrusive/pointer_traits.hpp>
-#include <boost/move/adl_move_swap.hpp>
 
+#include <functional>           // for std::less
 #include <iosfwd>               // for std::basic_ostream
 
-#include <boost/intrusive/detail/minimal_less_equal_header.hpp>   //std::less
 
 namespace boost {
 namespace interprocess {
@@ -65,12 +56,12 @@ class intrusive_ptr
    //!Provides the type of the stored pointer.
    typedef T element_type;
 
-   #if !defined(BOOST_INTERPROCESS_DOXYGEN_INVOKED)
+   /// @cond
    private:
    typedef VoidPointer VP;
    typedef intrusive_ptr this_type;
    typedef pointer this_type::*unspecified_bool_type;
-   #endif   //#ifndef BOOST_INTERPROCESS_DOXYGEN_INVOKED
+   /// @endcond
 
    public:
    //!Constructor. Initializes internal pointer to 0.
@@ -134,7 +125,7 @@ class intrusive_ptr
       this_type(rhs).swap(*this);
       return *this;
    }
-
+  
    //!Returns a reference to the internal pointer.
    //!Does not throw
    pointer &get()
@@ -173,12 +164,12 @@ class intrusive_ptr
    //!Exchanges the contents of the two smart pointers.
    //!Does not throw
    void swap(intrusive_ptr & rhs)
-   {  ::boost::adl_move_swap(m_ptr, rhs.m_ptr);  }
+   {  ipcdetail::do_swap(m_ptr, rhs.m_ptr);  }
 
-   #if !defined(BOOST_INTERPROCESS_DOXYGEN_INVOKED)
+   /// @cond
    private:
    pointer m_ptr;
-   #endif   //#ifndef BOOST_INTERPROCESS_DOXYGEN_INVOKED
+   /// @endcond
 };
 
 //!Returns a.get() == b.get().
@@ -228,9 +219,9 @@ bool operator!=(const typename intrusive_ptr<T, VP>::pointer &a,
 template<class T, class VP> inline
 bool operator<(intrusive_ptr<T, VP> const & a,
                intrusive_ptr<T, VP> const & b)
-{
+{ 
    return std::less<typename intrusive_ptr<T, VP>::pointer>()
-      (a.get(), b.get());
+      (a.get(), b.get());  
 }
 
 //!Exchanges the contents of the two intrusive_ptrs.
@@ -286,7 +277,7 @@ inline boost::interprocess::intrusive_ptr<T, VP>reinterpret_pointer_cast
 
 } // namespace interprocess
 
-#if !defined(BOOST_INTERPROCESS_DOXYGEN_INVOKED)
+/// @cond
 
 #if defined(_MSC_VER) && (_MSC_VER < 1400)
 //!Returns p.get().
@@ -296,7 +287,7 @@ inline T *to_raw_pointer(boost::interprocess::intrusive_ptr<T, VP> p)
 {  return p.get();   }
 #endif
 
-#endif   //#ifndef BOOST_INTERPROCESS_DOXYGEN_INVOKED
+/// @endcond
 
 } // namespace boost
 

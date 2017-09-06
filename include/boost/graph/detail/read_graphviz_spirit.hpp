@@ -14,7 +14,7 @@
 //   http://www.graphviz.org/cvs/doc/info/lang.html
 //
 //   See documentation for this code at: 
-//     http://www.boost.org/libs/graph/doc/read_graphviz.html
+//     http://www.boost.org/libs/graph/doc/read-graphviz.html
 //
 
 // Author: Ronald Garcia
@@ -604,9 +604,7 @@ bool read_graphviz_spirit(MultiPassIterator begin, MultiPassIterator end,
 
   scanner_t scan(begin, end, policies);
 
-  bool ok = p.parse(scan);
-  m_graph.finish_building_graph();
-  return ok;
+  return p.parse(scan);
 }
 
 } // namespace boost

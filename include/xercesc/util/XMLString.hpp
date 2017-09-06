@@ -16,7 +16,7 @@
  */
 
 /*
- * $Id: XMLString.hpp 1677605 2015-05-04 14:29:48Z amassari $
+ * $Id: XMLString.hpp 932887 2010-04-11 13:04:59Z borisk $
  */
 
 #if !defined(XERCESC_INCLUDE_GUARD_XMLSTRING_HPP)
@@ -1443,7 +1443,7 @@ inline void XMLString::moveChars(       XMLCh* const targetStr
                                 , const XMLCh* const srcStr
                                 , const XMLSize_t    count)
 {
-    memmove(targetStr, srcStr, count * sizeof(XMLCh));
+    memcpy(targetStr, srcStr, count * sizeof(XMLCh));
 }
 
 inline XMLSize_t XMLString::stringLen(const XMLCh* const src)

@@ -39,20 +39,17 @@
 
 #ifndef IEXMATH_EXPORT_H
 #define IEXMATH_EXPORT_H
-
-#if defined(OPENEXR_DLL)
-    #if defined(IEXMATH_EXPORTS)
-    #define IEXMATH_EXPORT __declspec(dllexport)
-    #else
-    #define IEXMATH_EXPORT __declspec(dllimport)
-    #endif
-    #define IEXMATH_EXPORT_CONST
+#if defined(PLATFORM_WINDOWS) && !defined(ZENO_STATIC)
+#   ifdef IEXMATH_EXPORTS
+#       define IEXMATH_EXPORT __declspec(dllexport)
+#   else
+#       define IEXMATH_EXPORT __declspec(dllimport)
+#   endif
 #else
-    #define IEXMATH_EXPORT
-    #define IEXMATH_EXPORT_CONST const
+#   define IEXMATH_EXPORT
+#endif
 #endif
 
-#endif
 
 #include "IexNamespace.h"
 #include "IexMathExc.h"

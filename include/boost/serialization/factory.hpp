@@ -3,7 +3,7 @@
 
 /////////1/////////2/////////3/////////4/////////5/////////6/////////7/////////8
 // MS compatible compilers support #pragma once
-#if defined(_MSC_VER)
+#if defined(_MSC_VER) && (_MSC_VER >= 1020)
 # pragma once
 #endif
 
@@ -21,10 +21,10 @@
 
 #include <boost/preprocessor/control/if.hpp> 
 #include <boost/preprocessor/comparison/greater.hpp>
-#include <boost/assert.hpp>
+#include <boost/preprocessor/facilities/empty.hpp>
 
 namespace std{
-    #if defined(__LIBCOMO__)
+    #if defined(__LIBCOMO__) || defined(__QNXNTO__) 
         using ::va_list;
     #endif
 } // namespace std

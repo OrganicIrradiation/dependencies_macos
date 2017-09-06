@@ -64,7 +64,7 @@ public:
 
     // fast saving of arrays of fundamental types
     template<class T>
-    void load_array(serialization::array_wrapper<T> const& x, unsigned int /* file_version */)
+    void load_array(serialization::array<T> const& x, unsigned int /* file_version */)
     {
       if (x.count())
         load_impl(x.address(), get_mpi_datatype(*x.address()), x.count());
@@ -72,7 +72,7 @@ public:
 
 /*
     template<class T>
-    void load(serialization::array_wrapper<T> const& x)
+    void load(serialization::array<T> const& x)
     {
       load_array(x,0u);
     }
@@ -94,9 +94,7 @@ public:
         load(l);
         s.resize(l);
         // note breaking a rule here - could be a problem on some platform
-        if (l)
-          load_impl(const_cast<CharType *>(s.data()),
-                    get_mpi_datatype(CharType()),l);
+        load_impl(const_cast<CharType *>(s.data()),get_mpi_datatype(CharType()),l);
     }
 
 private:

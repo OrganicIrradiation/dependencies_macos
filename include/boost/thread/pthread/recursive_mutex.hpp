@@ -9,9 +9,7 @@
 #include <pthread.h>
 #include <boost/throw_exception.hpp>
 #include <boost/thread/exceptions.hpp>
-#if defined BOOST_THREAD_PROVIDES_NESTED_LOCKS
-#include <boost/thread/lock_types.hpp>
-#endif
+#include <boost/thread/locks.hpp>
 #include <boost/thread/thread_time.hpp>
 #include <boost/assert.hpp>
 #ifndef _WIN32
@@ -27,19 +25,13 @@
 #endif
 #include <boost/thread/detail/delete.hpp>
 
-#if (defined _POSIX_TIMEOUTS && (_POSIX_TIMEOUTS-0)>=200112L) \
- || (defined __ANDROID__ && defined __ANDROID_API__ && __ANDROID_API__ >= 21)
-#ifndef BOOST_PTHREAD_HAS_TIMEDLOCK
+#ifdef _POSIX_TIMEOUTS
+#if _POSIX_TIMEOUTS >= 0
 #define BOOST_PTHREAD_HAS_TIMEDLOCK
 #endif
 #endif
 
-#if  defined BOOST_HAS_PTHREAD_MUTEXATTR_SETTYPE \
- ||  defined __ANDROID__
-#define BOOST_THREAD_HAS_PTHREAD_MUTEXATTR_SETTYPE
-#endif
-
-#if defined BOOST_THREAD_HAS_PTHREAD_MUTEXATTR_SETTYPE && defined BOOST_PTHREAD_HAS_TIMEDLOCK
+#if defined(BOOST_HAS_PTHREAD_MUTEXATTR_SETTYPE) && defined(BOOST_PTHREAD_HAS_TIMEDLOCK)
 #define BOOST_USE_PTHREAD_RECURSIVE_TIMEDLOCK
 #endif
 
@@ -51,7 +43,7 @@ namespace boost
     {
     private:
         pthread_mutex_t m;
-#ifndef BOOST_THREAD_HAS_PTHREAD_MUTEXATTR_SETTYPE
+#ifndef BOOST_HAS_PTHREAD_MUTEXATTR_SETTYPE
         pthread_cond_t cond;
         bool is_locked;
         pthread_t owner;
@@ -61,7 +53,7 @@ namespace boost
         BOOST_THREAD_NO_COPYABLE(recursive_mutex)
         recursive_mutex()
         {
-#ifdef BOOST_THREAD_HAS_PTHREAD_MUTEXATTR_SETTYPE
+#ifdef BOOST_HAS_PTHREAD_MUTEXATTR_SETTYPE
             pthread_mutexattr_t attr;
 
             int const init_attr_res=pthread_mutexattr_init(&attr);
@@ -102,12 +94,12 @@ namespace boost
         ~recursive_mutex()
         {
             BOOST_VERIFY(!pthread_mutex_destroy(&m));
-#ifndef BOOST_THREAD_HAS_PTHREAD_MUTEXATTR_SETTYPE
+#ifndef BOOST_HAS_PTHREAD_MUTEXATTR_SETTYPE
             BOOST_VERIFY(!pthread_cond_destroy(&cond));
 #endif
         }
 
-#ifdef BOOST_THREAD_HAS_PTHREAD_MUTEXATTR_SETTYPE
+#ifdef BOOST_HAS_PTHREAD_MUTEXATTR_SETTYPE
         void lock()
         {
             BOOST_VERIFY(!pthread_mutex_lock(&m));
@@ -118,7 +110,7 @@ namespace boost
             BOOST_VERIFY(!pthread_mutex_unlock(&m));
         }
 
-        bool try_lock() BOOST_NOEXCEPT
+        bool try_lock()
         {
             int const res=pthread_mutex_trylock(&m);
             BOOST_ASSERT(!res || res==EBUSY);
@@ -175,10 +167,8 @@ namespace boost
 
 #endif
 
-#if defined BOOST_THREAD_PROVIDES_NESTED_LOCKS
         typedef unique_lock<recursive_mutex> scoped_lock;
         typedef detail::try_lock_wrapper<recursive_mutex> scoped_try_lock;
-#endif
     };
 
     typedef recursive_mutex recursive_try_mutex;
@@ -242,13 +232,11 @@ namespace boost
 #endif
         }
 
-#if defined BOOST_THREAD_USES_DATETIME
         template<typename TimeDuration>
         bool timed_lock(TimeDuration const & relative_time)
         {
             return timed_lock(get_system_time()+relative_time);
         }
-#endif
 
 #ifdef BOOST_USE_PTHREAD_RECURSIVE_TIMEDLOCK
         void lock()
@@ -306,7 +294,7 @@ namespace boost
             BOOST_VERIFY(!pthread_cond_signal(&cond));
         }
 
-        bool try_lock() BOOST_NOEXCEPT
+        bool try_lock()
         {
             boost::pthread::pthread_mutex_scoped_lock const local_lock(&m);
             if(is_locked && !pthread_equal(owner,pthread_self()))
@@ -346,13 +334,12 @@ namespace boost
 
 #endif
 
-#if defined BOOST_THREAD_USES_DATETIME
         bool timed_lock(system_time const & abs_time)
         {
-            struct timespec const ts=detail::to_timespec(abs_time);
+            struct timespec const ts=detail::get_timespec(abs_time);
             return do_try_lock_until(ts);
         }
-#endif
+
 #ifdef BOOST_THREAD_USES_CHRONO
         template <class Rep, class Period>
         bool try_lock_for(const chrono::duration<Rep, Period>& rel_time)
@@ -376,9 +363,12 @@ namespace boost
         }
         bool try_lock_until(const chrono::time_point<chrono::system_clock, chrono::nanoseconds>& tp)
         {
-          //using namespace chrono;
-          chrono::nanoseconds d = tp.time_since_epoch();
-          timespec ts = boost::detail::to_timespec(d);
+          using namespace chrono;
+          nanoseconds d = tp.time_since_epoch();
+          timespec ts;
+          seconds s = duration_cast<seconds>(d);
+          ts.tv_sec = static_cast<long>(s.count());
+          ts.tv_nsec = static_cast<long>((d - s).count());
           return do_try_lock_until(ts);
         }
 #endif
@@ -390,11 +380,9 @@ namespace boost
             return &m;
         }
 
-#if defined BOOST_THREAD_PROVIDES_NESTED_LOCKS
         typedef unique_lock<recursive_timed_mutex> scoped_timed_lock;
         typedef detail::try_lock_wrapper<recursive_timed_mutex> scoped_try_lock;
         typedef scoped_timed_lock scoped_lock;
-#endif
     };
 
 }

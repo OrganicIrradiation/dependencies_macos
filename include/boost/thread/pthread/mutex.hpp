@@ -1,20 +1,15 @@
 #ifndef BOOST_THREAD_PTHREAD_MUTEX_HPP
 #define BOOST_THREAD_PTHREAD_MUTEX_HPP
 // (C) Copyright 2007-8 Anthony Williams
-// (C) Copyright 2011,2012,2015 Vicente J. Botet Escriba
+// (C) Copyright 2011-2012 Vicente J. Botet Escriba
 // Distributed under the Boost Software License, Version 1.0. (See
 // accompanying file LICENSE_1_0.txt or copy at
 // http://www.boost.org/LICENSE_1_0.txt)
 
-#include <boost/thread/detail/config.hpp>
-#include <boost/assert.hpp>
 #include <pthread.h>
 #include <boost/throw_exception.hpp>
-#include <boost/core/ignore_unused.hpp>
 #include <boost/thread/exceptions.hpp>
-#if defined BOOST_THREAD_PROVIDES_NESTED_LOCKS
-#include <boost/thread/lock_types.hpp>
-#endif
+#include <boost/thread/locks.hpp>
 #include <boost/thread/thread_time.hpp>
 #include <boost/thread/xtime.hpp>
 #include <boost/assert.hpp>
@@ -27,68 +22,16 @@
 #endif
 #include <boost/thread/detail/delete.hpp>
 
-#if (defined(_POSIX_TIMEOUTS) && (_POSIX_TIMEOUTS-0)>=200112L) \
- || (defined(__ANDROID__) && defined(__ANDROID_API__) && __ANDROID_API__ >= 21)
-#ifndef BOOST_PTHREAD_HAS_TIMEDLOCK
+#ifdef _POSIX_TIMEOUTS
+#if _POSIX_TIMEOUTS >= 0 && _POSIX_C_SOURCE>=200112L
 #define BOOST_PTHREAD_HAS_TIMEDLOCK
 #endif
 #endif
 
-
 #include <boost/config/abi_prefix.hpp>
-
-#ifndef BOOST_THREAD_HAS_NO_EINTR_BUG
-#define BOOST_THREAD_HAS_EINTR_BUG
-#endif
 
 namespace boost
 {
-  namespace posix {
-#ifdef BOOST_THREAD_HAS_EINTR_BUG
-    BOOST_FORCEINLINE int pthread_mutex_destroy(pthread_mutex_t* m)
-    {
-      int ret;
-      do
-      {
-          ret = ::pthread_mutex_destroy(m);
-      } while (ret == EINTR);
-      return ret;
-    }
-    BOOST_FORCEINLINE int pthread_mutex_lock(pthread_mutex_t* m)
-    {
-      int ret;
-      do
-      {
-          ret = ::pthread_mutex_lock(m);
-      } while (ret == EINTR);
-      return ret;
-    }
-    BOOST_FORCEINLINE int pthread_mutex_unlock(pthread_mutex_t* m)
-    {
-      int ret;
-      do
-      {
-          ret = ::pthread_mutex_unlock(m);
-      } while (ret == EINTR);
-      return ret;
-    }
-#else
-    BOOST_FORCEINLINE int pthread_mutex_destroy(pthread_mutex_t* m)
-    {
-      return ::pthread_mutex_destroy(m);
-    }
-    BOOST_FORCEINLINE int pthread_mutex_lock(pthread_mutex_t* m)
-    {
-      return ::pthread_mutex_lock(m);
-    }
-    BOOST_FORCEINLINE int pthread_mutex_unlock(pthread_mutex_t* m)
-    {
-      return ::pthread_mutex_unlock(m);
-    }
-
-#endif
-
-  }
     class mutex
     {
     private:
@@ -106,14 +49,20 @@ namespace boost
         }
         ~mutex()
         {
-          int const res = posix::pthread_mutex_destroy(&m);
-          boost::ignore_unused(res);
-          BOOST_ASSERT(!res);
+            int ret;
+            do
+            {
+                ret = pthread_mutex_destroy(&m);
+            } while (ret == EINTR);
         }
 
         void lock()
         {
-            int res = posix::pthread_mutex_lock(&m);
+            int res;
+            do
+            {
+                res = pthread_mutex_lock(&m);
+            } while (res == EINTR);
             if (res)
             {
                 boost::throw_exception(lock_error(res,"boost: mutex lock failed in pthread_mutex_lock"));
@@ -122,13 +71,12 @@ namespace boost
 
         void unlock()
         {
-            int res = posix::pthread_mutex_unlock(&m);
-            (void)res;
-            BOOST_ASSERT(res == 0);
-//            if (res)
-//            {
-//                boost::throw_exception(lock_error(res,"boost: mutex unlock failed in pthread_mutex_unlock"));
-//            }
+            int ret;
+            do
+            {
+                ret = pthread_mutex_unlock(&m);
+            } while (ret == EINTR);
+            BOOST_VERIFY(!ret);
         }
 
         bool try_lock()
@@ -138,8 +86,12 @@ namespace boost
             {
                 res = pthread_mutex_trylock(&m);
             } while (res == EINTR);
-            if (res==EBUSY)
+            if(res && (res!=EBUSY))
             {
+                // The following throw_exception has been replaced by an assertion and just return false,
+                // as this is an internal error and the user can do nothing with the exception.
+                //boost::throw_exception(lock_error(res,"boost: mutex try_lock failed in pthread_mutex_trylock"));
+                BOOST_ASSERT_MSG(false ,"boost: mutex try_lock failed in pthread_mutex_trylock");
                 return false;
             }
 
@@ -153,10 +105,8 @@ namespace boost
             return &m;
         }
 
-#if defined BOOST_THREAD_PROVIDES_NESTED_LOCKS
         typedef unique_lock<mutex> scoped_lock;
         typedef detail::try_lock_wrapper<mutex> scoped_try_lock;
-#endif
     };
 
     typedef mutex try_mutex;
@@ -182,8 +132,7 @@ namespace boost
             int const res2=pthread_cond_init(&cond,NULL);
             if(res2)
             {
-                BOOST_VERIFY(!posix::pthread_mutex_destroy(&m));
-                //BOOST_VERIFY(!pthread_mutex_destroy(&m));
+                BOOST_VERIFY(!pthread_mutex_destroy(&m));
                 boost::throw_exception(thread_resource_error(res2, "boost:: timed_mutex constructor failed in pthread_cond_init"));
             }
             is_locked=false;
@@ -191,13 +140,12 @@ namespace boost
         }
         ~timed_mutex()
         {
-            BOOST_VERIFY(!posix::pthread_mutex_destroy(&m));
+            BOOST_VERIFY(!pthread_mutex_destroy(&m));
 #ifndef BOOST_PTHREAD_HAS_TIMEDLOCK
             BOOST_VERIFY(!pthread_cond_destroy(&cond));
 #endif
         }
 
-#if defined BOOST_THREAD_USES_DATETIME
         template<typename TimeDuration>
         bool timed_lock(TimeDuration const & relative_time)
         {
@@ -207,41 +155,23 @@ namespace boost
         {
             return timed_lock(system_time(absolute_time));
         }
-#endif
+
 #ifdef BOOST_PTHREAD_HAS_TIMEDLOCK
         void lock()
         {
-            int res = posix::pthread_mutex_lock(&m);
-            if (res)
-            {
-                boost::throw_exception(lock_error(res,"boost: mutex lock failed in pthread_mutex_lock"));
-            }
+            BOOST_VERIFY(!pthread_mutex_lock(&m));
         }
 
         void unlock()
         {
-            int res = posix::pthread_mutex_unlock(&m);
-            (void)res;
-            BOOST_ASSERT(res == 0);
-//            if (res)
-//            {
-//                boost::throw_exception(lock_error(res,"boost: mutex unlock failed in pthread_mutex_unlock"));
-//            }
+            BOOST_VERIFY(!pthread_mutex_unlock(&m));
         }
 
         bool try_lock()
         {
-          int res;
-          do
-          {
-              res = pthread_mutex_trylock(&m);
-          } while (res == EINTR);
-          if (res==EBUSY)
-          {
-              return false;
-          }
-
-          return !res;
+            int const res=pthread_mutex_trylock(&m);
+            BOOST_ASSERT(!res || res==EBUSY);
+            return !res;
         }
 
 
@@ -302,13 +232,12 @@ namespace boost
     public:
 #endif
 
-#if defined BOOST_THREAD_USES_DATETIME
         bool timed_lock(system_time const & abs_time)
         {
-            struct timespec const ts=boost::detail::to_timespec(abs_time);
+            struct timespec const ts=detail::get_timespec(abs_time);
             return do_try_lock_until(ts);
         }
-#endif
+
 #ifdef BOOST_THREAD_USES_CHRONO
         template <class Rep, class Period>
         bool try_lock_for(const chrono::duration<Rep, Period>& rel_time)
@@ -332,9 +261,12 @@ namespace boost
         }
         bool try_lock_until(const chrono::time_point<chrono::system_clock, chrono::nanoseconds>& tp)
         {
-          //using namespace chrono;
-          chrono::nanoseconds d = tp.time_since_epoch();
-          timespec ts = boost::detail::to_timespec(d);
+          using namespace chrono;
+          nanoseconds d = tp.time_since_epoch();
+          timespec ts;
+          seconds s = duration_cast<seconds>(d);
+          ts.tv_sec = static_cast<long>(s.count());
+          ts.tv_nsec = static_cast<long>((d - s).count());
           return do_try_lock_until(ts);
         }
 #endif
@@ -346,11 +278,9 @@ namespace boost
             return &m;
         }
 
-#if defined BOOST_THREAD_PROVIDES_NESTED_LOCKS
         typedef unique_lock<timed_mutex> scoped_timed_lock;
         typedef detail::try_lock_wrapper<timed_mutex> scoped_try_lock;
         typedef scoped_timed_lock scoped_lock;
-#endif
     };
 
 }
